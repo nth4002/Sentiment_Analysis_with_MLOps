@@ -1,0 +1,8 @@
+[core]
+    no_scm = True
+    remote = my_minio_storage
+['remote "my_minio_storage"']
+    url = s3://mlops-sentiment-data
+    endpointurl = http://localhost:9000
+    access_key_id = mlops_minio
+    secret_access_key = mlops@2025

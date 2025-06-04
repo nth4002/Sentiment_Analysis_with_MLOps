@@ -1,0 +1,15 @@
+dvc[s3] # Or dvc[gdrive], dvc[gs] based on your remote choice (e.g., for MinIO, use dvc[s3] and boto3)
+great_expectations
+polars
+pandas
+scikit-learn
+nltk
+spacy
+mlflow
+mlflow-tensorflow # For Keras/TF models logging
+keras-tuner # For hyperparameter tuning
+tensorflow # Or tensorflow-cpu if no GPU, or tensorflow-gpu if you have local GPU
+# transformers # Uncomment if you plan to reintroduce BERT/DistilBERT models
+contractions # For text preprocessing
+matplotlib # For plotting
+boto3 # If using S3/MinIO for DVC remote or MLflow artifact storage
