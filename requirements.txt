@@ -6,10 +6,8 @@ scikit-learn
 nltk
 spacy
 mlflow
-mlflow-tensorflow # For Keras/TF models logging
-keras-tuner # For hyperparameter tuning
-tensorflow # Or tensorflow-cpu if no GPU, or tensorflow-gpu if you have local GPU
-# transformers # Uncomment if you plan to reintroduce BERT/DistilBERT models
-contractions # For text preprocessing
-matplotlib # For plotting
-boto3 # If using S3/MinIO for DVC remote or MLflow artifact storage
+keras-tuner
+tensorflow
+contractions
+matplotlib
+boto3

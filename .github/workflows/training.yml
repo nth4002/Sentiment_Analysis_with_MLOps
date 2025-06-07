@@ -1,0 +1,72 @@
+# .github/workflows/training.yml
+name: MLOps Training Pipeline
+
+on:
+  push:
+    branches:
+      - main # Trigger on push to the main branch
+      - develop # Or your development branch
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  train_and_register_model:
+    runs-on: ubuntu-latest # Use a self-hosted runner with GPU if deep learning model training truly requires it
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        # Set up Git for DVC/Git commits by GitHub Actions bot
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }} # Required for bot to commit
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9" # Or your preferred Python version
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # Install SpaCy model
+          python -m spacy download en_core_web_sm
+          # If using S3/MinIO, make sure boto3 is in requirements.txt
+
+      - name: Configure DVC Credentials (for MinIO/S3/GCS)
+        env:
+          # These secrets must be configured in your GitHub repository settings -> Secrets and variables -> Actions
+          AWS_ACCESS_KEY_ID: ${{ secrets.DVC_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DVC_SECRET_ACCESS_KEY }}
+          # For MinIO specifically, you might need to set the endpoint if it's not default S3
+          # DVC_REMOTE_MINIO_ENDPOINT_URL: http://your-minio-host:9000 # Example, based on your .dvc/config setup
+        run: |
+          # DVC remote configuration is usually in .dvc/config,
+          # but credentials must be provided via environment variables in CI/CD.
+          # Ensure DVC config is properly set up in your repo: `dvc remote add -d my_remote s3://your-bucket`
+          echo "DVC credentials configured."
+          # If using a self-hosted MinIO, ensure it's publicly accessible or your runner has access.
+          # For a simple test, if your MinIO is on localhost:9000, it won't be accessible by GitHub Actions.
+
+      - name: Configure MLflow Tracking URI
+        env:
+          # Your MLflow server URI, stored as a GitHub Secret
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          # If your MLflow server requires authentication
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_PASSWORD }}
+        run: |
+          echo "MLflow Tracking URI set: ${MLFLOW_TRACKING_URI}"
+          # Ensure the MLflow server is accessible from the GitHub Actions runner.
+          # A cloud-hosted MLflow server (e.g., Databricks, AWS SageMaker MLflow, GCS managed service) is ideal.
+
+      - name: Run MLOps Training Pipeline
+        run: |
+          python src/main.py
+
+      - name: Push Git changes (DVC .dvc files)
+        # This step pushes the git commits made by src/main.py related to DVC file updates
+        # It's important to push these back to the main branch
+        run: |
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

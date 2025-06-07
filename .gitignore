@@ -1,0 +1,14 @@
+# Ignore virtual environment
+venv/
+
+# Ignore data2 folder
+data2/
+
+# Ignore all .log files anywhere in the project
+*.log
+
+# Ignore specific file
+note.txt
+
+# Ignore tmp file or folder
+tmp

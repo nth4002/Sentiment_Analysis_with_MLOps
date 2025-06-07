@@ -103,7 +103,7 @@ def build_and_train_bi_rnn_model(X_train, y_train, X_val, y_val, input_dim, max_
 
     RNN_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     
-    epochs = 10
+    epochs = 1
     batch_size = 32
     logger.info(f"[INFO]: Starting training BiRNN model for {epochs} epochs with batch size {batch_size} ...")
     history = RNN_model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val), verbose=2)
@@ -149,7 +149,7 @@ def build_and_train_lstm_model(X_train, y_train, X_val, y_val, input_dim, max_le
 
     lstm_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-    epochs = 10
+    epochs = 1
     batch_size = 128
     logger.info(f"[INFO]: Starting training LSTM model for {epochs} epochs with batch size {batch_size} ...")
     history = lstm_model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val), verbose=2)
@@ -190,7 +190,7 @@ def build_and_train_gru_model(X_train, y_train, X_val, y_val, input_dim, max_len
 
     GRU_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     
-    epochs = 5
+    epochs = 1
     batch_size = 256
     logger.info(f"[INFO]: Starting training GRU model for {epochs} epochs with batch size {batch_size} ...")
     history = GRU_model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val), verbose=2)
@@ -252,16 +252,17 @@ def tune_and_log_gru(x_train, y_train, x_val, y_val, input_dim, input_length, pr
     Performs hyperparameter tuning for GRU model using KerasTuner,
     logs results to MLflow, and registers the best model if criteria met.
     """
+    num_max_trials = 10
     tuner = kt.RandomSearch(
         build_gru_model_fn(input_dim, input_length),
         objective="val_accuracy",
-        max_trials=5,
+        max_trials=num_max_trials,
         executions_per_trial=1,
         directory="tuner_logs",
         project_name=project_name,
         overwrite=True # Set to False if you want to resume old searches
     )
-    logger.info(f"[INFO]: Starting hyperparameter tuning for GRU model (max_trials={tuner.max_trials}) ...")
+    logger.info(f"[INFO]: Starting hyperparameter tuning for GRU model (max_trials={num_max_trials}) ...")
     
     # Define an early stopping callback
     early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
@@ -294,7 +295,7 @@ def tune_and_log_gru(x_train, y_train, x_val, y_val, input_dim, input_length, pr
 
         # Retrain the best model with potentially more epochs
         logger.info("[INFO]: Retraining best GRU model with best hyperparameters...")
-        retrain_epochs = 20 # Can be more epochs for final training
+        retrain_epochs = 1 # Can be more epochs for final training
         history = best_model.fit(
             x_train, y_train,
             validation_data=(x_val, y_val),
@@ -433,7 +434,9 @@ def train_and_evaluate_all_models(data_dir, tokenizer_path, plot_output_dir, mod
         model_registry_name (str): Name to use for MLflow Model Registry.
     """
     X_train, y_train, X_val, y_val, X_test, y_test, tokenizer = load_data_for_training(data_dir, tokenizer_path)
-    
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    default_mlflow_uri = f"file://{os.path.join(project_root, 'mlruns')}"
+    mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", default_mlflow_uri)
     # Get vocabulary size and max_len for embedding layer
     input_dim = len(tokenizer.word_index) + 1 # Vocabulary size + 1 for padding
     max_len = X_train.shape[1] # Length of padded sequences
@@ -441,7 +444,6 @@ def train_and_evaluate_all_models(data_dir, tokenizer_path, plot_output_dir, mod
     logger.info(f"Embedding layer input_length (max_len): {max_len}")
 
     # Set MLflow Tracking URI from environment variable (crucial for CI/CD/Kaggle)
-    mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "file://./mlruns")
     mlflow.set_tracking_uri(mlflow_tracking_uri)
     logger.info(f"MLflow Tracking URI set to: {mlflow.get_tracking_uri()}")
 
@@ -449,8 +451,8 @@ def train_and_evaluate_all_models(data_dir, tokenizer_path, plot_output_dir, mod
 
     # List of models to train and evaluate
     models_to_train = {
-        "BiRNN": build_and_train_bi_rnn_model,
-        "LSTM": build_and_train_lstm_model,
+        # "BiRNN": build_and_train_bi_rnn_model,
+        # "LSTM": build_and_train_lstm_model,
         "GRU": build_and_train_gru_model
     }
 
@@ -498,9 +500,9 @@ def train_and_evaluate_all_models(data_dir, tokenizer_path, plot_output_dir, mod
 
 if __name__ == '__main__':
     # For local testing, ensure dummy data and tokenizer are present
-    project_root = os.path.join(os.path.dirname(__file__), '..')
-    data_dir_local = os.path.join(project_root, 'data')
-    tokenizer_path_local = os.path.join(project_root, 'data', 'tokenizer.pkl')
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    data_dir_local = os.path.join(project_root, 'data2')
+    tokenizer_path_local = os.path.join(project_root, 'data2', 'tokenizer.pkl')
     plot_output_dir_local = os.path.join(project_root, 'plots')
     
     # Ensure a dummy tokenizer.pkl and dummy .npy files exist for standalone testing
@@ -508,7 +510,7 @@ if __name__ == '__main__':
        not os.path.exists(os.path.join(data_dir_local, 'X_train.npy')):
         logger.warning("No preprocessed data found. Attempting to run data_preprocessing.py to generate it...")
         # Import and run the preprocessing script's main function
-        from data_preprocessing import validate_and_preprocess_data_ge
+        from src.data_workflow.data_preprocessing import validate_and_preprocess_data_ge
         raw_data_path_local_dp = os.path.join(project_root, 'data', 'IMDB-Dataset.csv')
         
         # Create a dummy IMDB-Dataset.csv if it doesn't exist for local testing
