@@ -12,3 +12,8 @@ note.txt
 
 # Ignore tmp file or folder
 tmp
+/minio_data/
+/postgres_data/
+/src/mlruns/
+/src/mlartifacts/
+/src/tuner_logs

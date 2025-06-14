@@ -127,13 +127,13 @@ def main():
     logger.info("DVC push of processed data and tokenizer successful.")
 
     # STEP 3: Model Training, Evaluation, and Registration (MLflow)
-    logger.info("\n--- Running Model Training and Evaluation ---")
-    try:
-        train_and_evaluate_all_models(processed_data_output_dir, tokenizer_path, plot_output_dir, model_registry_name)
-        logger.info("Model Training, Evaluation, and Registration successful.")
-    except Exception as e:
-        logger.error(f"An unexpected error occurred during model training: {e}", exc_info=True)
-        sys.exit(1)
+    # logger.info("\n--- Running Model Training and Evaluation ---")
+    # try:
+    #     train_and_evaluate_all_models(processed_data_output_dir, tokenizer_path, plot_output_dir, model_registry_name)
+    #     logger.info("Model Training, Evaluation, and Registration successful.")
+    # except Exception as e:
+    #     logger.error(f"An unexpected error occurred during model training: {e}", exc_info=True)
+    #     sys.exit(1)
 
     logger.info("\n--- MLOps Training Pipeline Completed Successfully ---")
 
