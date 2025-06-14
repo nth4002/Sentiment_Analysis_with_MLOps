@@ -1,6 +1,6 @@
 # Ignore virtual environment
 venv/
-
+/mlruns/
 # Ignore data2 folder
 data2/
 

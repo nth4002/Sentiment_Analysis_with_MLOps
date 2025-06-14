@@ -239,7 +239,7 @@ def validate_and_preprocess_data_ge(raw_data_path, processed_data_output_dir, to
     )
     # Verify the Batch Definition is valid.
     batch = batch_definition.get_batch()
-    print(batch.head())
+    # print(batch.head())
 
     # Define an Expectation Suite
     
@@ -260,13 +260,12 @@ def validate_and_preprocess_data_ge(raw_data_path, processed_data_output_dir, to
         suite_raw.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="review"))
         suite_raw.add_expectation(gx.expectations.ExpectColumnValuesToNotBeNull(column="sentiment"))
         suite_raw.add_expectation(gx.expectations.ExpectColumnValuesToBeInSet(column="sentiment", value_set=["positive", "negative"]))
-        suite_raw.add_expectation(gx.expectations.ExpectColumnValueLengthsToBeBetween(column="review", min_value=10, max_value=10000))
+        suite_raw.add_expectation(gx.expectations.ExpectColumnValueLengthsToBeBetween(column="review", min_value=10, max_value=15000))
         logger.info(f"New expectation suite '{suite_name_raw}' created and expectations added.")
         
 
 
-    # print("Here")
-    # # --- GE Validation Execution (Updated for GE 1.3.6+ RuntimeBatchRequest) ---
+    # # --- GE Validation Execution ---
     raw_validation_definition_name = "raw_data_validation_definition"
     try:
          # Try to get existing validation definition using validation_definitions.get()
@@ -283,12 +282,12 @@ def validate_and_preprocess_data_ge(raw_data_path, processed_data_output_dir, to
             .get_batch_definition(batch_definition_name)
         )
 
-        raw_validation_definition = gx.ValidationDefinition( # <-- Create ValidationDefinition
+        raw_validation_definition = gx.ValidationDefinition( # Create ValidationDefinition
             data=batch_definition, 
             suite=suite_raw,                    
             name=raw_validation_definition_name
         )
-        context.validation_definitions.add(raw_validation_definition) # <-- Add to context
+        context.validation_definitions.add(raw_validation_definition) # Add to context
 
     try:
         logger.info(f"Running raw data Validation Definition '{raw_validation_definition_name}'...")
@@ -312,21 +311,26 @@ def validate_and_preprocess_data_ge(raw_data_path, processed_data_output_dir, to
 
     logger.info("Raw Data Validation Successful!")
 
-    # --- Preprocessing ---
+    # # --- Preprocessing ---
     logger.info("Starting data preprocessing...")
-    df_processed = df_raw.copy()
-    df_processed['cleaned_review'] = df_processed['review'].apply(preprocess_text_pipeline)
-    df_processed['review_len'] = df_processed['cleaned_review'].apply(len)
-    logger.info("Data preprocessing completed. Example of cleaned reviews:")
-    logger.info("\n" + df_processed[['review', 'cleaned_review']].head(2).to_string())
-
+    # df_processed = df_raw.copy()
+    # df_processed['cleaned_review'] = df_processed['review'].apply(preprocess_text_pipeline)
+    # df_processed['review_len'] = df_processed['cleaned_review'].apply(len)
+    # logger.info("Data preprocessing completed. Example of cleaned reviews:")
+    # logger.info("\n" + df_processed[['review', 'cleaned_review']].head(2).to_string())
+    
+    # for saving time, use saved dataset
+    df_processed = pl.read_parquet('/home/phucuy2025/School_Stuff/CS317_MLOps/sentiment_mlops_project/data/IMDB-Dataset-Processed2.parquet')
+    df_processed = df_processed.to_pandas()
+    
+    logger.info("Finish preprocessing dataset")
     # # --- Great Expectations Validation (Processed Data) ---
     logger.info("Starting Great Expectations validation for processed data...")
 
-      # Define the path for the new CSV file and save it 
-    processed_data_filename = "processed_dummy_data.csv"
+    # Define the path for the new CSV file and save it 
+    processed_data_filename = "processed_data.parquet"
     processed_data_path = os.path.join(processed_data_output_dir, processed_data_filename)
-    df_processed.to_csv(processed_data_path, index=False)
+    df_processed.to_parquet(processed_data_path, index=False)
     logger.info(f"Processed data saved to: {processed_data_path}")
 
     ### SET UP THE FILE-BASED ASSET AND BATCH DEFINITION ###
@@ -337,7 +341,7 @@ def validate_and_preprocess_data_ge(raw_data_path, processed_data_output_dir, to
         processed_data_asset = data_source.get_asset(processed_asset_name)
         logger.info(f" Check if asset already exists and get it")
     except LookupError:
-        processed_data_asset = data_source.add_csv_asset(name=processed_asset_name)
+        processed_data_asset = data_source.add_parquet_asset(name=processed_asset_name)
         logger.info(f"Create processed asset named {processed_asset_name}")
 
     # create a batch definition
@@ -352,7 +356,7 @@ def validate_and_preprocess_data_ge(raw_data_path, processed_data_output_dir, to
     )
     # Verify the Batch Definition is valid.
     batch = batch_definition_processed.get_batch()
-    print(batch.head())
+    # print(batch.head())
 
     suite_name_processed = "processed_sentiment_data_expectation_suite"
     try:
@@ -438,7 +442,7 @@ def validate_and_preprocess_data_ge(raw_data_path, processed_data_output_dir, to
     logger.info("Starting tokenization and padding...")
     calculated_max_len = int(df_processed['review_len'].max()) if not df_processed.empty else 0
     MAX_LEN_CAP = 500
-    MAX_LEN = min(calculated_max_len, MAX_LEN_CAP) if calculated_max_len > 0 else MAX_LEN_CAP
+    MAX_LEN = min(318, MAX_LEN_CAP) if calculated_max_len > 0 else MAX_LEN_CAP
     logger.info(f"Calculated MAX_LEN (before cap): {calculated_max_len}")
     logger.info(f"Using MAX_LEN for padding: {MAX_LEN}")
 
@@ -449,8 +453,10 @@ def validate_and_preprocess_data_ge(raw_data_path, processed_data_output_dir, to
     else:
         logger.info(f"Setting up tokenizer and pre-processing X and y dataset")
         tokenizer = Tokenizer(num_words=None, oov_token="<unk>")
-        tokenizer.fit_on_texts(df_processed['cleaned_review'].tolist())
-        X = tokenizer.texts_to_sequences(df_processed['cleaned_review'].tolist())
+        # tokenizer.fit_on_texts(df_processed['cleaned_review'].tolist())
+        texts = df_processed['cleaned_review'].apply(lambda tokens: ' '.join(tokens)).tolist()
+        tokenizer.fit_on_texts(texts)
+        X = tokenizer.texts_to_sequences(texts)
         X = pad_sequences(X, maxlen=MAX_LEN, padding='post')
         y = np.array([1 if label == "positive" else 0 for label in df_processed['sentiment']])
         

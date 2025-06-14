@@ -39,11 +39,11 @@ def run_dvc_command(command_args, cwd=None):
 def main():
     # Define paths relative to the project root
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    print(project_root)
-    raw_data_path = os.path.join(project_root, 'data2', 'dummy_data.csv') # Your raw data file name
-    print(raw_data_path)
-    processed_data_output_dir = os.path.join(project_root, 'data2') # Where to save .npy files
-    tokenizer_path = os.path.join(project_root, 'data2', 'tokenizer.pkl')
+    # print(project_root)
+    raw_data_path = os.path.join(project_root, 'data', 'IMDB-Dataset.csv') # Your raw data file name
+    # print(raw_data_path)
+    processed_data_output_dir = os.path.join(project_root, 'data') # Where to save .npy files
+    tokenizer_path = os.path.join(project_root, 'data', 'tokenizer.pkl')
     plot_output_dir = os.path.join(project_root, 'plots') # Directory for saving plots locally
     model_registry_name = "SentimentAnalysisModel" # Name for MLflow Model Registry
 
@@ -57,7 +57,7 @@ def main():
     logger.info("\n--- DVC Pulling Data ---")
     # This pulls raw_data.csv and any previously DVC-tracked processed data/tokenizer.
     # This ensures the pipeline always starts with the latest available data artifacts.
-    run_dvc_command(["pull"], cwd=project_root)
+    run_dvc_command(["pull", "--force"], cwd=project_root)
     logger.info("DVC pull successful.")
 
     # STEP 2: Data Validation & Preprocessing
@@ -76,13 +76,13 @@ def main():
     # This will version and push the *outputs* of the preprocessing step.
     # logger.info("\n--- DVC Adding/Pushing Processed Data and Tokenizer ---")
     # Add .dvc files for the generated processed data and tokenizer
-    run_dvc_command(["add", os.path.join('data2', 'X_train.npy')], cwd=project_root)
-    run_dvc_command(["add", os.path.join('data2', 'X_test.npy')], cwd=project_root)
-    run_dvc_command(["add", os.path.join('data2', 'X_val.npy')], cwd=project_root)
-    run_dvc_command(["add", os.path.join('data2', 'y_train.npy')], cwd=project_root)
-    run_dvc_command(["add", os.path.join('data2', 'y_test.npy')], cwd=project_root)
-    run_dvc_command(["add", os.path.join('data2', 'y_val.npy')], cwd=project_root)
-    run_dvc_command(["add", os.path.join('data2', 'tokenizer.pkl')], cwd=project_root)
+    run_dvc_command(["add", os.path.join('data', 'X_train.npy')], cwd=project_root)
+    run_dvc_command(["add", os.path.join('data', 'X_test.npy')], cwd=project_root)
+    run_dvc_command(["add", os.path.join('data', 'X_val.npy')], cwd=project_root)
+    run_dvc_command(["add", os.path.join('data', 'y_train.npy')], cwd=project_root)
+    run_dvc_command(["add", os.path.join('data', 'y_test.npy')], cwd=project_root)
+    run_dvc_command(["add", os.path.join('data', 'y_val.npy')], cwd=project_root)
+    run_dvc_command(["add", os.path.join('data', 'tokenizer.pkl')], cwd=project_root)
 
     # Commit changes to Git for the .dvc files
      # Commit changes to Git for the .dvc files

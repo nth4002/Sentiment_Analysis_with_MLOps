@@ -103,7 +103,7 @@ def build_and_train_bi_rnn_model(X_train, y_train, X_val, y_val, input_dim, max_
 
     RNN_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     
-    epochs = 1
+    epochs = 15
     batch_size = 32
     logger.info(f"[INFO]: Starting training BiRNN model for {epochs} epochs with batch size {batch_size} ...")
     history = RNN_model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val), verbose=2)
@@ -149,7 +149,7 @@ def build_and_train_lstm_model(X_train, y_train, X_val, y_val, input_dim, max_le
 
     lstm_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-    epochs = 1
+    epochs = 15 
     batch_size = 128
     logger.info(f"[INFO]: Starting training LSTM model for {epochs} epochs with batch size {batch_size} ...")
     history = lstm_model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val), verbose=2)
@@ -190,7 +190,7 @@ def build_and_train_gru_model(X_train, y_train, X_val, y_val, input_dim, max_len
 
     GRU_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     
-    epochs = 1
+    epochs = 20
     batch_size = 256
     logger.info(f"[INFO]: Starting training GRU model for {epochs} epochs with batch size {batch_size} ...")
     history = GRU_model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val), verbose=2)
@@ -295,7 +295,7 @@ def tune_and_log_gru(x_train, y_train, x_val, y_val, input_dim, input_length, pr
 
         # Retrain the best model with potentially more epochs
         logger.info("[INFO]: Retraining best GRU model with best hyperparameters...")
-        retrain_epochs = 1 # Can be more epochs for final training
+        retrain_epochs = 20 # Can be more epochs for final training
         history = best_model.fit(
             x_train, y_train,
             validation_data=(x_val, y_val),
@@ -451,9 +451,9 @@ def train_and_evaluate_all_models(data_dir, tokenizer_path, plot_output_dir, mod
 
     # List of models to train and evaluate
     models_to_train = {
-        # "BiRNN": build_and_train_bi_rnn_model,
-        # "LSTM": build_and_train_lstm_model,
-        "GRU": build_and_train_gru_model
+        "BiRNN": build_and_train_bi_rnn_model,
+        "LSTM": build_and_train_lstm_model,
+        # "GRU": build_and_train_gru_model
     }
 
     trained_models = {}
@@ -501,8 +501,8 @@ def train_and_evaluate_all_models(data_dir, tokenizer_path, plot_output_dir, mod
 if __name__ == '__main__':
     # For local testing, ensure dummy data and tokenizer are present
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    data_dir_local = os.path.join(project_root, 'data2')
-    tokenizer_path_local = os.path.join(project_root, 'data2', 'tokenizer.pkl')
+    data_dir_local = os.path.join(project_root, 'data')
+    tokenizer_path_local = os.path.join(project_root, 'data', 'tokenizer.pkl')
     plot_output_dir_local = os.path.join(project_root, 'plots')
     
     # Ensure a dummy tokenizer.pkl and dummy .npy files exist for standalone testing

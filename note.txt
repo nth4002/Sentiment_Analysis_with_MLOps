@@ -1,0 +1,54 @@
+#gdrive folder ID for DVC storage: 1Iv_9vh8gXryk6-6fylEwbYZ6ODivWWLD
+
+git init
+dvc init --no-scm -f // force
+dvc remote add -d my_gdrive_storage gdrive://1Iv_9vh8gXryk6-6fylEwbYZ6ODivWWLD
+
+# Download the MinIO binary:
+wget https://dl.min.io/server/minio/release/linux-amd64/minio
+chmod +x minio
+sudo mv minio /usr/local/bin/
+
+#Start the MinIO server:
+minio server /path/to/storage --console-address :9090
+
+
+#Data versioning and validation
+2.1. Initialize DVC & Configure Remote Storage:
+MinIO (Self-hosted S3-compatible, great for local/on-prem)
+Install MinIO: Follow instructions at min.io/docs/minio/linux/index.html.
+Start MinIO server.
+Create a bucket (e.g., mlops-sentiment-data).
+Configure DVC:
+dvc init --no-scm # Initialize DVC (if not already done with git init)
+# Link DVC to your local Git repo
+dvc remote add -d my_minio_storage s3://mlops-sentiment-data
+dvc remote modify my_minio_storage endpointurl http://localhost:9000 # your MinIO endpoint
+
+# For access key:
+dvc config remote.my_minio_storage.access_key_id YOUR_MINIO_ACCESS_KEY
+# for example: 
+dvc remote modify my_minio_storage access_key_id mlops_minio
+
+# for secret key
+dvc config remote.my_minio_storage.secret_access_key YOUR_MINIO_SECRET_KEY
+for example:
+dvc remote modify my_minio_storage secret_access_key mlops@2025
+
+export MINIO_ROOT_USER=mlops_minio
+export MINIO_ROOT_PASSWORD=mlops@2025
+
+# Start MinIO
+minio server ~/minio-data --console-address :9090
+
+# Set up Great Expectations:
+great_expectations init
+
+
+# running sudo docker-compose down -v
+down: Stops the running containers and removes them.
+-v: Also removes named volumes associated with the services in the docker-compose.yml file.
+
+# run:
+sudo docker-compose up -d
+

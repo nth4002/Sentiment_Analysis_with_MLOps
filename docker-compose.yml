@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  postgres_db:
+    image: postgres:latest
+    container_name: mlflow_postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: mlflow_user
+      POSTGRES_PASSWORD: mlflow_password
+      POSTGRES_DB: mlflow_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlflow_user -d mlflow_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: mlflow_minio
+    expose:
+      - "9000"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./minio_data:/data
+    environment:
+      MINIO_ROOT_USER: "mlops_minio"
+      MINIO_ROOT_PASSWORD: "mlops2025"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: server /data --console-address ":9001"
+    # create a bucket named "mlflow" if it doesnt exist
+  minio-create-bucket:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      bash -c "
+      mc alias set minio http://minio:9000 minio_user minio_password &&
+      if ! mc ls minio/mlflow; then
+        mc mb minio/mlflow
+      else
+        echo 'mlflow bucket already exists'
+      fi
+      "
+
+  # docker-compose.yml (partial)
+  mlflow:
+    build:
+      context: .
+      dockerfile: mlflow.Dockerfile
+    container_name: mlflow_server
+    ports:
+      - "5000:5000"
+    environment:
+      # --- Credentials for the wait script ---
+      - DB_HOST=postgres_db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+      # --- Credentials for MLflow Server ---
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=mlops_minio
+      - AWS_SECRET_ACCESS_KEY=mlops2025
+      - MLFLOW_BACKEND_STORE_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_db:5432/${POSTGRES_DB}
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=s3://mlflow
+    depends_on:
+      minio:
+        condition: service_healthy
+      postgres_db:
+        condition: service_healthy
